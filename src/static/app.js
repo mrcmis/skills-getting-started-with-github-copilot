@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
         const participantsList = details.participants
-          .map(participant => `<li>${participant}</li>`)
+          .map(participant => `<li><span>${participant}</span><button class="delete-btn" data-activity="${name}" data-email="${participant}">Delete</button></li>`)
           .join("");
 
         activityCard.innerHTML = `
@@ -37,6 +37,34 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         activitiesList.appendChild(activityCard);
+        
+        // Add event listeners for delete buttons
+        activityCard.querySelectorAll(".delete-btn").forEach(btn => {
+          btn.addEventListener("click", async (event) => {
+            event.preventDefault();
+            const activity = btn.getAttribute("data-activity");
+            const email = btn.getAttribute("data-email");
+            
+            try {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`,
+                {
+                  method: "DELETE",
+                }
+              );
+              
+              if (response.ok) {
+                // Refresh activities list
+                fetchActivities();
+              } else {
+                const result = await response.json();
+                console.error("Error unregistering:", result.detail);
+              }
+            } catch (error) {
+              console.error("Error unregistering participant:", error);
+            }
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -71,6 +99,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh activities list to show new participant
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
